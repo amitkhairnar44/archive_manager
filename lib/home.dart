@@ -1,11 +1,9 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:archive/archive.dart';
-import 'package:archive/archive_io.dart';
+import 'package:flutter_document_picker/flutter_document_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:flutter_document_picker/flutter_document_picker.dart';
 
 import 'decompressed_archive.dart';
 
@@ -19,96 +17,8 @@ class _HomeState extends State<Home> {
 
   PermissionStatus permissionStatus;
 
-  List<String> archiveFiles = [];
-
   FlutterDocumentPickerParams params = FlutterDocumentPickerParams(
       allowedFileExtensions: ['zip'], allowedMimeType: 'application/*');
-
-  @override
-  void initState() {
-    super.initState();
-    _getPath();
-  }
-
-  _getPath() async {
-    Directory appDocDir = await getExternalStorageDirectory();
-    String appDocPath = appDocDir.path;
-    print(appDocPath);
-
-    if (mounted) {
-      setState(() {
-        path = appDocPath;
-      });
-    }
-  }
-
-  _getPermissionStatus() async {
-    PermissionStatus permission = await PermissionHandler()
-        .checkPermissionStatus(PermissionGroup.storage);
-    print(permission);
-    permissionStatus = permission;
-  }
-
-  _requestPermission() async {
-    final List<PermissionGroup> permissions = <PermissionGroup>[
-      PermissionGroup.storage
-    ];
-    final Map<PermissionGroup, PermissionStatus> permissionRequestResult =
-        await PermissionHandler().requestPermissions([PermissionGroup.storage]);
-
-    setState(() {
-      permissionStatus = permissionRequestResult[permissions];
-      print(permissionStatus);
-    });
-
-    await _getPermissionStatus();
-  }
-
-  _chooseFile() async {
-    //String path = await DocumentChooser.chooseDocument();
-    final path = await FlutterDocumentPicker.openDocument(params: params)
-        .catchError((error) {
-      print(error.message);
-      _showInfoDialog();
-    });
-
-    if (path != null) {
-      print(path);
-
-      Navigator.of(context).push(MaterialPageRoute(builder: (BuildContext context){
-        return DecompressedArchiveDetails(path: path,);
-      }));
-    }
-  }
-
-  _decodeArchive(String filePath) {
-    archiveFiles.clear();
-    List<int> bytes =
-        new File(filePath).readAsBytesSync();
-
-    // Decode the Zip file
-    Archive archive = new ZipDecoder().decodeBytes(bytes);
-
-    // Extract the contents of the Zip archive to disk.
-    for (ArchiveFile file in archive) {
-      String filename = file.name;
-      setState(() {
-        archiveFiles.add(filename);
-      });
-      print(filename);
-      if (file.isFile) {
-        List<int> data = file.content;
-        // new File('out/' + filename)
-        //   ..createSync(recursive: true)
-        //   ..writeAsBytesSync(data);
-      } else {
-        // new Directory('out/' + filename)
-        //   ..create(recursive: true);
-      }
-    }
-
-    Navigator.of(context).pop();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -157,7 +67,7 @@ class _HomeState extends State<Home> {
                 style: TextStyle(color: Colors.white),
               ),
               onPressed: () {
-                if(permissionStatus == PermissionStatus.granted){
+                if (permissionStatus == PermissionStatus.granted) {
                   //_decodeArchive();
                   _chooseFile();
                 } else {
@@ -166,19 +76,70 @@ class _HomeState extends State<Home> {
                 }
               },
             ),
-            ListView.builder(
-              shrinkWrap: true,
-              itemCount: archiveFiles.length,
-              itemBuilder: (BuildContext context, int index) {
-                return ListTile(
-                  title: Text(archiveFiles[index]),
-                );
-              },
-            )
           ],
         ),
       ),
     );
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _getPath();
+  }
+
+  _chooseFile() async {
+    //String path = await DocumentChooser.chooseDocument();
+    final path = await FlutterDocumentPicker.openDocument(params: params)
+        .catchError((error) {
+      print(error.message);
+      _showInfoDialog();
+    });
+
+    if (path != null) {
+      print(path);
+
+      Navigator.of(context)
+          .push(MaterialPageRoute(builder: (BuildContext context) {
+        return DecompressedArchiveDetails(
+          path: path,
+        );
+      }));
+    }
+  }
+
+  _getPath() async {
+    Directory appDocDir = await getExternalStorageDirectory();
+    String appDocPath = appDocDir.path;
+    print(appDocPath);
+
+    if (mounted) {
+      setState(() {
+        path = appDocPath;
+      });
+    }
+  }
+
+  _getPermissionStatus() async {
+    PermissionStatus permission = await PermissionHandler()
+        .checkPermissionStatus(PermissionGroup.storage);
+    print(permission);
+    permissionStatus = permission;
+  }
+
+  _requestPermission() async {
+    final List<PermissionGroup> permissions = <PermissionGroup>[
+      PermissionGroup.storage
+    ];
+    final Map<PermissionGroup, PermissionStatus> permissionRequestResult =
+        await PermissionHandler().requestPermissions([PermissionGroup.storage]);
+
+    setState(() {
+      permissionStatus = permissionRequestResult[permissions];
+      print(permissionStatus);
+    });
+
+    await _getPermissionStatus();
   }
 
   _showInfoDialog() {
@@ -208,27 +169,6 @@ class _HomeState extends State<Home> {
               style: TextStyle(fontWeight: FontWeight.w500),
             ),
           );
-        });
-  }
-
-  showLoading({@required String message, @required BuildContext context}) {
-    return showDialog<Null>(
-        context: context,
-        barrierDismissible: false,
-        builder: (BuildContext context) {
-          return AlertDialog(
-            content: ListTile(
-              leading: SizedBox(
-                width: 20.0,
-                height: 20.0,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2.0,
-                ),
-              ),
-              title: Text('$message', style: TextStyle(fontSize: 18.0),),
-            ),
-            shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8.0)),);
         });
   }
 }
