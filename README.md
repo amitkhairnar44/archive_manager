@@ -1,6 +1,7 @@
 # archive_manager
 
 Archive manager app is built with Flutter. It can be used to compress and decompress some archive formats.
+This project is in alpha stage and does not has full functionality.
 
 ### Supported formats
 

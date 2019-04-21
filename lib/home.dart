@@ -45,15 +45,17 @@ class _HomeState extends State<Home> {
           )
         ],
       ),
-      body: SingleChildScrollView(
+      body: Container(
+        padding: const EdgeInsets.all(16.0),
         child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          mainAxisSize: MainAxisSize.max,
           children: <Widget>[
-            ListTile(
-              leading: Icon(
-                Icons.info,
-              ),
-              title: Text('Open a file to continue'),
+            Center(
+              child: Text('Open a file to continue', style: TextStyle(fontWeight: FontWeight.w500),),
             ),
+            Padding(padding: const EdgeInsets.symmetric(vertical: 8.0)),
             FlatButton.icon(
               color: Colors.blue,
               shape: RoundedRectangleBorder(
@@ -166,7 +168,7 @@ class _HomeState extends State<Home> {
             ),
             content: Text(
               'Currently this app supports only Zip, Tar, BZip2, GZip, Zlib formats',
-              style: TextStyle(fontWeight: FontWeight.w500),
+              style: TextStyle(fontWeight: FontWeight.w500, color: Colors.grey[700]),
             ),
           );
         });
