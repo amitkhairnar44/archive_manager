@@ -7,6 +7,7 @@ import 'package:archive/archive.dart';
 import 'package:archive/archive_io.dart';
 
 List<String> archiveFiles = [];
+Map<String, ArchiveFile> filesMap = Map();
 
 class DecodeParam {
   final String file;
@@ -24,6 +25,7 @@ void decode(DecodeParam param) {
   // Extract the contents of the Zip archive to disk.
   for (ArchiveFile file in archive) {
     String filename = file.name;
+    filesMap[filename] = file;
     archiveFiles.add(filename);
     print('$archiveFiles $filename');
     if (file.isFile) {
@@ -37,7 +39,8 @@ void decode(DecodeParam param) {
     }
   }
 
-  param.sendPort.send(archiveFiles);
+  //param.sendPort.send(archiveFiles);
+  param.sendPort.send(filesMap);
 }
 
 class DecompressedArchiveDetails extends StatefulWidget {
@@ -80,7 +83,8 @@ class _DecompressedArchiveDetailsState
     });
     print(image);
     setState(() {
-      archiveFiles = image;
+      //archiveFiles = image;
+      filesMap = image;
     });
   }
 
@@ -124,15 +128,16 @@ class _DecompressedArchiveDetailsState
           style: TextStyle(color: Colors.black),
         ),
       ),
-      body: archiveFiles.length != 0
+      body: filesMap.length != 0
           ? ListView.builder(
               shrinkWrap: true,
               padding: const EdgeInsets.all(16.0),
-              itemCount: archiveFiles.length,
+              itemCount: filesMap.length,
               itemBuilder: (BuildContext context, int index) {
+                String key = filesMap.keys.elementAt(index);
                 return ListTile(
-                  leading: Icon(Icons.insert_drive_file),
-                  title: Text(archiveFiles[index]),
+                  leading: Icon(filesMap[key].isFile ? Icons.insert_drive_file : Icons.folder),
+                  title: Text(key),
                   onTap: () {},
                 );
               },
