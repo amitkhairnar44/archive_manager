@@ -10,18 +10,23 @@ List<String> archiveFiles = [];
 Map<String, ArchiveFile> filesMap = Map();
 String rootPath;
 
-class DecodeParam {
-  final String file;
-  final SendPort sendPort;
-  DecodeParam(this.file, this.sendPort);
-}
-
 void decode(DecodeParam param) {
   archiveFiles.clear();
   List<int> bytes = new File(param.file).readAsBytesSync();
-
+  print('Current extension: ${param.fileExtension}');
   // Decode the Zip file
-  Archive archive = new ZipDecoder().decodeBytes(bytes);
+  Archive archive;
+
+  if (param.fileExtension == 'zip') {
+    archive = new ZipDecoder().decodeBytes(bytes);
+  }
+  if (param.fileExtension == 'tar') {
+    archive = new TarDecoder().decodeBytes(bytes);
+  }
+//  TODO Extract GZip archive straight away without displaying content
+//  if(param.fileExtension == 'gz'){
+//    archive = new GZipDecoder().decodeBytes(bytes);
+//  }
 
   // Extract the contents of the Zip archive to disk.
   for (ArchiveFile file in archive) {
@@ -45,10 +50,19 @@ void decode(DecodeParam param) {
   param.sendPort.send(filesMap);
 }
 
+class DecodeParam {
+  final String file;
+  final String fileExtension;
+  final SendPort sendPort;
+  DecodeParam(this.file, this.sendPort, this.fileExtension);
+}
+
 class DecompressedArchiveDetails extends StatefulWidget {
   final String path;
+  final String fileExtension;
 
-  const DecompressedArchiveDetails({Key key, this.path}) : super(key: key);
+  const DecompressedArchiveDetails({Key key, this.path, this.fileExtension})
+      : super(key: key);
 
   @override
   _DecompressedArchiveDetailsState createState() =>
@@ -58,78 +72,6 @@ class DecompressedArchiveDetails extends StatefulWidget {
 class _DecompressedArchiveDetailsState
     extends State<DecompressedArchiveDetails> {
   String title;
-
-  @override
-  void initState() {
-    super.initState();
-    _getRootPath();
-    var split = widget.path.split('/');
-
-    title = split[split.length - 1];
-    print(title);
-    //_decodeArchive(widget.path);
-    archiveFiles.clear();
-    _decode();
-    new Directory('$rootPath/Extracted')
-      ..create(recursive: false).then((dir) {
-        print('Path of dir: ${dir.path}');
-      }, onError: (error) {
-        print(error.message);
-      });
-  }
-
-  _getRootPath() async {
-    Directory appDocDir = await getExternalStorageDirectory();
-    String appDocPath = appDocDir.path;
-    print('Root path: $rootPath');
-    setState(() {
-      rootPath = appDocPath;
-    });
-  }
-
-  _decode() async {
-    ReceivePort receivePort = new ReceivePort();
-
-    await Isolate.spawn(
-        decode, new DecodeParam(widget.path, receivePort.sendPort));
-
-    // Get the processed image from the isolate.
-    var image = await receivePort.first;
-    setState(() {
-      print(archiveFiles);
-    });
-    print(image);
-    setState(() {
-      //archiveFiles = image;
-      filesMap = image;
-    });
-  }
-
-  _decodeArchive(String filePath) {
-    archiveFiles.clear();
-    List<int> bytes = new File(filePath).readAsBytesSync();
-
-    // Decode the Zip file
-    Archive archive = new ZipDecoder().decodeBytes(bytes);
-
-    // Extract the contents of the Zip archive to disk.
-    for (ArchiveFile file in archive) {
-      String filename = file.name;
-      setState(() {
-        archiveFiles.add(filename);
-      });
-      print(filename);
-      if (file.isFile) {
-        List<int> data = file.content;
-        // new File('out/' + filename)
-        //   ..createSync(recursive: true)
-        //   ..writeAsBytesSync(data);
-      } else {
-//         new Directory('out/' + filename)
-//           ..create(recursive: true);
-      }
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -229,6 +171,25 @@ class _DecompressedArchiveDetailsState
     );
   }
 
+  @override
+  void initState() {
+    super.initState();
+    _getRootPath();
+    var split = widget.path.split('/');
+
+    title = split[split.length - 1];
+    print(title);
+    //_decodeArchive(widget.path);
+    archiveFiles.clear();
+    _decode();
+    new Directory('$rootPath/Extracted')
+      ..create(recursive: false).then((dir) {
+        print('Path of dir: ${dir.path}');
+      }, onError: (error) {
+        print(error.message);
+      });
+  }
+
   showLoading({@required String message}) {
     return showDialog<Null>(
         context: context,
@@ -254,63 +215,59 @@ class _DecompressedArchiveDetailsState
         });
   }
 
-  _showFileInfoDialog(ArchiveFile file) {
-    return showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (BuildContext context) {
-          return AlertDialog(
-            titlePadding: const EdgeInsets.only(left: 24.0),
-            shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8.0)),
-            title: ListTile(
-              title: Text(
-                'Properties',
-                style: TextStyle(fontWeight: FontWeight.w500, fontSize: 20.0),
-              ),
-              trailing: IconButton(
-                icon: Icon(Icons.cancel),
-                onPressed: () {
-                  Navigator.of(context).pop();
-                },
-              ),
-              contentPadding: const EdgeInsets.all(0.0),
-            ),
-            content: ListView(
-              shrinkWrap: true,
-              children: <Widget>[
-                ListTile(
-                  title: Text(
-                    'Name',
-                    style: TextStyle(fontWeight: FontWeight.w500),
-                  ),
-                  subtitle: Text(file.name),
-                  contentPadding: const EdgeInsets.all(0.0),
-                ),
-                ListTile(
-                  title: Text(
-                    'Size',
-                    style: TextStyle(fontWeight: FontWeight.w500),
-                  ),
-                  subtitle: file.size < 1000
-                      ? Text('${file.size} Bytes')
-                      : (file.size > 1000 && file.size < 1000000)
-                          ? Text('${(file.size / 1024).round()} KB')
-                          : Text('${(file.size / 1048576).round()} MB'),
-                  contentPadding: const EdgeInsets.all(0.0),
-                ),
-                ListTile(
-                  title: Text(
-                    'Type',
-                    style: TextStyle(fontWeight: FontWeight.w500),
-                  ),
-                  subtitle: Text(file.isFile ? 'File' : 'Folder'),
-                  contentPadding: const EdgeInsets.all(0.0),
-                ),
-              ],
-            ),
-          );
-        });
+  _decode() async {
+    ReceivePort receivePort = new ReceivePort();
+
+    await Isolate.spawn(
+        decode,
+        new DecodeParam(
+            widget.path, receivePort.sendPort, widget.fileExtension));
+
+    // Get the processed image from the isolate.
+    var image = await receivePort.first;
+    setState(() {
+      print(archiveFiles);
+    });
+    print(image);
+    setState(() {
+      //archiveFiles = image;
+      filesMap = image;
+    });
+  }
+
+//  _decodeArchive(String filePath) {
+//    archiveFiles.clear();
+//    List<int> bytes = new File(filePath).readAsBytesSync();
+//
+//    // Decode the Zip file
+//    Archive archive = new ZipDecoder().decodeBytes(bytes);
+//
+//    // Extract the contents of the Zip archive to disk.
+//    for (ArchiveFile file in archive) {
+//      String filename = file.name;
+//      setState(() {
+//        archiveFiles.add(filename);
+//      });
+//      print(filename);
+//      if (file.isFile) {
+//        List<int> data = file.content;
+//        // new File('out/' + filename)
+//        //   ..createSync(recursive: true)
+//        //   ..writeAsBytesSync(data);
+//      } else {
+////         new Directory('out/' + filename)
+////           ..create(recursive: true);
+//      }
+//    }
+//  }
+
+  _getRootPath() async {
+    Directory appDocDir = await getExternalStorageDirectory();
+    String appDocPath = appDocDir.path;
+    print('Root path: $rootPath');
+    setState(() {
+      rootPath = appDocPath;
+    });
   }
 
   _showExtractDialog() {
@@ -379,6 +336,65 @@ class _DecompressedArchiveDetailsState
                   child: Text('Extract',
                       style: TextStyle(fontWeight: FontWeight.bold)))
             ],
+          );
+        });
+  }
+
+  _showFileInfoDialog(ArchiveFile file) {
+    return showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            titlePadding: const EdgeInsets.only(left: 24.0),
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8.0)),
+            title: ListTile(
+              title: Text(
+                'Properties',
+                style: TextStyle(fontWeight: FontWeight.w500, fontSize: 20.0),
+              ),
+              trailing: IconButton(
+                icon: Icon(Icons.cancel),
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+              ),
+              contentPadding: const EdgeInsets.all(0.0),
+            ),
+            content: ListView(
+              shrinkWrap: true,
+              children: <Widget>[
+                ListTile(
+                  title: Text(
+                    'Name',
+                    style: TextStyle(fontWeight: FontWeight.w500),
+                  ),
+                  subtitle: Text(file.name),
+                  contentPadding: const EdgeInsets.all(0.0),
+                ),
+                ListTile(
+                  title: Text(
+                    'Size',
+                    style: TextStyle(fontWeight: FontWeight.w500),
+                  ),
+                  subtitle: file.size < 1000
+                      ? Text('${file.size} Bytes')
+                      : (file.size > 1000 && file.size < 1000000)
+                          ? Text('${(file.size / 1024).round()} KB')
+                          : Text('${(file.size / 1048576).round()} MB'),
+                  contentPadding: const EdgeInsets.all(0.0),
+                ),
+                ListTile(
+                  title: Text(
+                    'Type',
+                    style: TextStyle(fontWeight: FontWeight.w500),
+                  ),
+                  subtitle: Text(file.isFile ? 'File' : 'Folder'),
+                  contentPadding: const EdgeInsets.all(0.0),
+                ),
+              ],
+            ),
           );
         });
   }

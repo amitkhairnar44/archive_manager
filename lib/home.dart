@@ -37,7 +37,10 @@ class _HomeState extends State<Home> {
               size: 18.0,
             ),
             onPressed: () {
-              _showInfoDialog();
+              _showInfoDialog(
+                  title: 'About',
+                  text:
+                      'Currently this app supports only Zip, Tar, BZip2, GZip, Zlib formats');
             },
           )
         ],
@@ -109,8 +112,14 @@ class _HomeState extends State<Home> {
             .push(MaterialPageRoute(builder: (BuildContext context) {
           return DecompressedArchiveDetails(
             path: path,
+            fileExtension: extension,
           );
         }));
+      } else {
+        _showInfoDialog(
+            title: 'Error',
+            text:
+                'Please select supported archives: Zip, Tar, BZip2, GZip, Zlib');
       }
     }
   }
@@ -149,18 +158,20 @@ class _HomeState extends State<Home> {
     await _getPermissionStatus();
   }
 
-  _showInfoDialog() {
+  _showInfoDialog({String title, String text}) {
     return showDialog(
         context: context,
         barrierDismissible: false,
         builder: (BuildContext context) {
           return AlertDialog(
             titlePadding: const EdgeInsets.only(left: 24.0),
+            contentPadding:
+                const EdgeInsets.only(left: 24.0, right: 24.0, bottom: 24.0),
             shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8.0)),
             title: ListTile(
               title: Text(
-                'About',
+                '$title',
                 style: TextStyle(fontWeight: FontWeight.w500, fontSize: 20.0),
               ),
               trailing: IconButton(
@@ -172,9 +183,8 @@ class _HomeState extends State<Home> {
               contentPadding: const EdgeInsets.all(0.0),
             ),
             content: Text(
-              'Currently this app supports only Zip, Tar, BZip2, GZip, Zlib formats',
-              style: TextStyle(
-                  fontWeight: FontWeight.w500, color: Colors.grey[700]),
+              '$text',
+              style: TextStyle(fontWeight: FontWeight.w500),
             ),
           );
         });
