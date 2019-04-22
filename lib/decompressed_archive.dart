@@ -4,9 +4,11 @@ import 'dart:isolate';
 import 'package:archive/archive.dart';
 import 'package:archive/archive_io.dart';
 import 'package:flutter/material.dart';
+import 'package:path_provider/path_provider.dart';
 
 List<String> archiveFiles = [];
 Map<String, ArchiveFile> filesMap = Map();
+String rootPath;
 
 class DecodeParam {
   final String file;
@@ -27,15 +29,16 @@ void decode(DecodeParam param) {
     filesMap[filename] = file;
     archiveFiles.add(filename);
     print('$archiveFiles $filename');
-    if (file.isFile) {
-      List<int> data = file.content;
-      // new File('out/' + filename)
-      //   ..createSync(recursive: true)
-      //   ..writeAsBytesSync(data);
-    } else {
-      // new Directory('out/' + filename)
-      //   ..create(recursive: true);
-    }
+//    if (file.isFile) {
+//      List<int> data = file.content;
+//      print(file.content);
+//       new File('$rootPath/out/' + filename)
+//         ..createSync(recursive: true)
+//         ..writeAsBytes(data);
+//    } else {
+//       new Directory('$rootPath/' + filename)
+//         ..create(recursive: true);
+//    }
   }
 
   //param.sendPort.send(archiveFiles);
@@ -59,7 +62,7 @@ class _DecompressedArchiveDetailsState
   @override
   void initState() {
     super.initState();
-
+    _getRootPath();
     var split = widget.path.split('/');
 
     title = split[split.length - 1];
@@ -67,6 +70,21 @@ class _DecompressedArchiveDetailsState
     //_decodeArchive(widget.path);
     archiveFiles.clear();
     _decode();
+    new Directory('$rootPath/Extracted')
+      ..create(recursive: false).then((dir) {
+        print('Path of dir: ${dir.path}');
+      }, onError: (error) {
+        print(error.message);
+      });
+  }
+
+  _getRootPath() async {
+    Directory appDocDir = await getExternalStorageDirectory();
+    String appDocPath = appDocDir.path;
+    print('Root path: $rootPath');
+    setState(() {
+      rootPath = appDocPath;
+    });
   }
 
   _decode() async {
@@ -107,8 +125,8 @@ class _DecompressedArchiveDetailsState
         //   ..createSync(recursive: true)
         //   ..writeAsBytesSync(data);
       } else {
-        // new Directory('out/' + filename)
-        //   ..create(recursive: true);
+//         new Directory('out/' + filename)
+//           ..create(recursive: true);
       }
     }
   }
@@ -121,11 +139,17 @@ class _DecompressedArchiveDetailsState
         iconTheme: IconThemeData(color: Colors.black),
         elevation: 0.0,
         backgroundColor: Colors.white,
-        centerTitle: true,
         title: Text(
-          title,
+          'Archive',
           style: TextStyle(color: Colors.black),
         ),
+        actions: <Widget>[
+          IconButton(
+              icon: Icon(Icons.unarchive),
+              onPressed: () {
+                _showExtractDialog();
+              })
+        ],
       ),
       body: filesMap.length != 0
           ? ListView.builder(
@@ -164,6 +188,17 @@ class _DecompressedArchiveDetailsState
                       if (value == 'Info') {
                         _showFileInfoDialog(filesMap[key]);
                       }
+                      if (value == 'Extract') {
+                        if (filesMap[key].isFile) {
+                          List<int> data = filesMap[key].content;
+                          new File('$rootPath/out/' + filesMap[key].name)
+                            ..createSync(recursive: true)
+                            ..writeAsBytes(data);
+                        } else {
+                          new Directory('$rootPath/out/' + filesMap[key].name)
+                            ..create(recursive: true);
+                        }
+                      }
                     },
                   ),
                   onTap: () {
@@ -194,7 +229,7 @@ class _DecompressedArchiveDetailsState
     );
   }
 
-  showLoading({@required String message, @required BuildContext context}) {
+  showLoading({@required String message}) {
     return showDialog<Null>(
         context: context,
         barrierDismissible: false,
@@ -274,6 +309,76 @@ class _DecompressedArchiveDetailsState
                 ),
               ],
             ),
+          );
+        });
+  }
+
+  _showExtractDialog() {
+    return showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            titlePadding: const EdgeInsets.only(left: 24.0),
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8.0)),
+            title: ListTile(
+              title: Text(
+                'Extract',
+                style: TextStyle(fontWeight: FontWeight.w500, fontSize: 20.0),
+              ),
+              trailing: IconButton(
+                icon: Icon(
+                  Icons.cancel,
+                  color: Colors.grey[700],
+                ),
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+              ),
+              contentPadding: const EdgeInsets.all(0.0),
+            ),
+            content: Text(
+                'The archive will be extracted to \'Extracted\' folder in storage',
+                style: TextStyle(fontWeight: FontWeight.w500)),
+            actions: <Widget>[
+              FlatButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                    showLoading(message: 'Wait');
+                    var split = title.split('.');
+                    String dirName = split[0];
+                    new Directory('$rootPath/Extracted/$dirName')
+                      ..create(recursive: false).then((dir) {
+                        print('Path of dir: ${dir.path}');
+                      }, onError: (error) {
+                        print(error.message);
+                      });
+                    var counter = 0;
+
+                    filesMap.forEach((name, archiveFile) {
+                      counter++;
+                      if (archiveFile.isFile) {
+                        List<int> data = archiveFile.content;
+                        new File(
+                            '$rootPath/Extracted/$dirName/' + archiveFile.name)
+                          ..createSync(recursive: true)
+                          ..writeAsBytes(data);
+                      } else {
+                        new Directory(
+                            '$rootPath/Extracted/$dirName/' + archiveFile.name)
+                          ..create(recursive: true);
+                      }
+                      if (counter == filesMap.length) {
+                        print('Equal $counter');
+                        Navigator.of(context).pop();
+                      }
+                    });
+                    print(counter);
+                  },
+                  child: Text('Extract',
+                      style: TextStyle(fontWeight: FontWeight.bold)))
+            ],
           );
         });
   }
