@@ -1,10 +1,9 @@
-import 'dart:async';
 import 'dart:io';
 import 'dart:isolate';
 
-import 'package:flutter/material.dart';
 import 'package:archive/archive.dart';
 import 'package:archive/archive_io.dart';
+import 'package:flutter/material.dart';
 
 List<String> archiveFiles = [];
 Map<String, ArchiveFile> filesMap = Map();
@@ -131,14 +130,45 @@ class _DecompressedArchiveDetailsState
       body: filesMap.length != 0
           ? ListView.builder(
               shrinkWrap: true,
-              padding: const EdgeInsets.all(16.0),
               itemCount: filesMap.length,
               itemBuilder: (BuildContext context, int index) {
                 String key = filesMap.keys.elementAt(index);
                 return ListTile(
-                  leading: Icon(filesMap[key].isFile ? Icons.insert_drive_file : Icons.folder),
+                  contentPadding: const EdgeInsets.only(left: 24.0, right: 8.0),
+                  leading: Icon(
+                    filesMap[key].isFile
+                        ? Icons.insert_drive_file
+                        : Icons.folder_open,
+                    color: Colors.grey[700],
+                  ),
                   title: Text(key),
-                  onTap: () {},
+                  subtitle: filesMap[key].size < 1000
+                      ? Text('${filesMap[key].size} Bytes')
+                      : (filesMap[key].size > 1000 &&
+                              filesMap[key].size < 1000000)
+                          ? Text('${(filesMap[key].size / 1024).round()} KB')
+                          : Text(
+                              '${(filesMap[key].size / 1048576).round()} MB'),
+                  trailing: PopupMenuButton(
+                    itemBuilder: (BuildContext context) {
+                      return [
+                        new PopupMenuItem<String>(
+                            child: new Text('Extract'), value: 'Extract'),
+                        new PopupMenuItem<String>(
+                            child: new Text('Info'), value: 'Info'),
+                      ];
+                    },
+                    icon: Icon(Icons.arrow_drop_down),
+                    onSelected: (value) {
+                      print(value);
+                      if (value == 'Info') {
+                        _showFileInfoDialog(filesMap[key]);
+                      }
+                    },
+                  ),
+                  onTap: () {
+                    _showFileInfoDialog(filesMap[key]);
+                  },
                 );
               },
             )
@@ -185,6 +215,65 @@ class _DecompressedArchiveDetailsState
             ),
             shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8.0)),
+          );
+        });
+  }
+
+  _showFileInfoDialog(ArchiveFile file) {
+    return showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            titlePadding: const EdgeInsets.only(left: 24.0),
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8.0)),
+            title: ListTile(
+              title: Text(
+                'Properties',
+                style: TextStyle(fontWeight: FontWeight.w500, fontSize: 20.0),
+              ),
+              trailing: IconButton(
+                icon: Icon(Icons.cancel),
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+              ),
+              contentPadding: const EdgeInsets.all(0.0),
+            ),
+            content: ListView(
+              shrinkWrap: true,
+              children: <Widget>[
+                ListTile(
+                  title: Text(
+                    'Name',
+                    style: TextStyle(fontWeight: FontWeight.w500),
+                  ),
+                  subtitle: Text(file.name),
+                  contentPadding: const EdgeInsets.all(0.0),
+                ),
+                ListTile(
+                  title: Text(
+                    'Size',
+                    style: TextStyle(fontWeight: FontWeight.w500),
+                  ),
+                  subtitle: file.size < 1000
+                      ? Text('${file.size} Bytes')
+                      : (file.size > 1000 && file.size < 1000000)
+                          ? Text('${(file.size / 1024).round()} KB')
+                          : Text('${(file.size / 1048576).round()} MB'),
+                  contentPadding: const EdgeInsets.all(0.0),
+                ),
+                ListTile(
+                  title: Text(
+                    'Type',
+                    style: TextStyle(fontWeight: FontWeight.w500),
+                  ),
+                  subtitle: Text(file.isFile ? 'File' : 'Folder'),
+                  contentPadding: const EdgeInsets.all(0.0),
+                ),
+              ],
+            ),
           );
         });
   }

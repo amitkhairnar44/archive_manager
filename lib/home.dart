@@ -1,7 +1,7 @@
 import 'dart:io';
 
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_document_picker/flutter_document_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 
@@ -16,9 +16,6 @@ class _HomeState extends State<Home> {
   String path;
 
   PermissionStatus permissionStatus;
-
-  FlutterDocumentPickerParams params = FlutterDocumentPickerParams(
-      allowedFileExtensions: ['zip'], allowedMimeType: 'application/*');
 
   @override
   Widget build(BuildContext context) {
@@ -53,7 +50,10 @@ class _HomeState extends State<Home> {
           mainAxisSize: MainAxisSize.max,
           children: <Widget>[
             Center(
-              child: Text('Open a file to continue', style: TextStyle(fontWeight: FontWeight.w500),),
+              child: Text(
+                'Open a file to continue',
+                style: TextStyle(fontWeight: FontWeight.w500),
+              ),
             ),
             Padding(padding: const EdgeInsets.symmetric(vertical: 8.0)),
             FlatButton.icon(
@@ -88,25 +88,30 @@ class _HomeState extends State<Home> {
   void initState() {
     super.initState();
     _getPath();
+    _requestPermission();
   }
 
   _chooseFile() async {
-    //String path = await DocumentChooser.chooseDocument();
-    final path = await FlutterDocumentPicker.openDocument(params: params)
-        .catchError((error) {
-      print(error.message);
-      _showInfoDialog();
-    });
+    final path = await FilePicker.getFilePath(type: FileType.ANY);
 
     if (path != null) {
       print(path);
 
-      Navigator.of(context)
-          .push(MaterialPageRoute(builder: (BuildContext context) {
-        return DecompressedArchiveDetails(
-          path: path,
-        );
-      }));
+      var split = path.split('.');
+      var extension = split[split.length - 1];
+      print('Selected file extension : $extension');
+      if (extension == 'zip' ||
+          extension == 'tar' ||
+          extension == 'gz' ||
+          extension == 'bz2' ||
+          extension == 'bzip2') {
+        Navigator.of(context)
+            .push(MaterialPageRoute(builder: (BuildContext context) {
+          return DecompressedArchiveDetails(
+            path: path,
+          );
+        }));
+      }
     }
   }
 
@@ -168,7 +173,8 @@ class _HomeState extends State<Home> {
             ),
             content: Text(
               'Currently this app supports only Zip, Tar, BZip2, GZip, Zlib formats',
-              style: TextStyle(fontWeight: FontWeight.w500, color: Colors.grey[700]),
+              style: TextStyle(
+                  fontWeight: FontWeight.w500, color: Colors.grey[700]),
             ),
           );
         });
