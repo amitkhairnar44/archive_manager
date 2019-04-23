@@ -343,7 +343,7 @@ class _DecompressedArchiveDetailsState
   _showFileInfoDialog(ArchiveFile file) {
     return showDialog(
         context: context,
-        barrierDismissible: false,
+        barrierDismissible: true,
         builder: (BuildContext context) {
           return AlertDialog(
             titlePadding: const EdgeInsets.only(left: 24.0),
