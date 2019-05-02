@@ -25,6 +25,7 @@ class _HomeState extends State<Home> {
         elevation: 0.0,
         backgroundColor: Colors.white,
         centerTitle: true,
+        brightness: Brightness.light,
         title: Text(
           'Archive Manager',
           style: TextStyle(color: Colors.black),
@@ -83,7 +84,6 @@ class _HomeState extends State<Home> {
                 } else if (Platform.isIOS) {
                   _chooseFile();
                 }
-
               },
             ),
           ],
@@ -132,7 +132,7 @@ class _HomeState extends State<Home> {
   _getPath() async {
     Directory appDocDir;
 
-    if(Platform.isIOS){
+    if (Platform.isIOS) {
       appDocDir = await getApplicationDocumentsDirectory();
     } else {
       appDocDir = await getExternalStorageDirectory();

@@ -81,6 +81,7 @@ class _DecompressedArchiveDetailsState
         iconTheme: IconThemeData(color: Colors.black),
         elevation: 0.0,
         backgroundColor: Colors.white,
+        brightness: Brightness.light,
         title: Text(
           'Archive',
           style: TextStyle(color: Colors.black),
@@ -264,7 +265,7 @@ class _DecompressedArchiveDetailsState
   _getRootPath() async {
     Directory appDocDir;
 
-    if(Platform.isIOS){
+    if (Platform.isIOS) {
       appDocDir = await getApplicationDocumentsDirectory();
     } else {
       appDocDir = await getExternalStorageDirectory();
@@ -387,8 +388,8 @@ class _DecompressedArchiveDetailsState
                   subtitle: file.size < 1000
                       ? Text('${file.size} Bytes')
                       : (file.size > 1000 && file.size < 1000000)
-                      ? Text('${(file.size / 1024).round()} KB')
-                      : Text('${(file.size / 1048576).round()} MB'),
+                          ? Text('${(file.size / 1024).round()} KB')
+                          : Text('${(file.size / 1048576).round()} MB'),
                   contentPadding: const EdgeInsets.all(0.0),
                 ),
                 ListTile(
