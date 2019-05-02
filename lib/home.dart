@@ -72,13 +72,18 @@ class _HomeState extends State<Home> {
                 style: TextStyle(color: Colors.white),
               ),
               onPressed: () {
-                if (permissionStatus == PermissionStatus.granted) {
-                  //_decodeArchive();
+                if (Platform.isAndroid) {
+                  if (permissionStatus == PermissionStatus.granted) {
+                    //_decodeArchive();
+                    _chooseFile();
+                  } else {
+                    print('Storage permissions are not granted');
+                    _requestPermission();
+                  }
+                } else if (Platform.isIOS) {
                   _chooseFile();
-                } else {
-                  print('Storage permissions are not granted');
-                  _requestPermission();
                 }
+
               },
             ),
           ],
@@ -125,7 +130,14 @@ class _HomeState extends State<Home> {
   }
 
   _getPath() async {
-    Directory appDocDir = await getExternalStorageDirectory();
+    Directory appDocDir;
+
+    if(Platform.isIOS){
+      appDocDir = await getApplicationDocumentsDirectory();
+    } else {
+      appDocDir = await getExternalStorageDirectory();
+    }
+
     String appDocPath = appDocDir.path;
     print(appDocPath);
 

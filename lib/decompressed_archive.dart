@@ -262,7 +262,13 @@ class _DecompressedArchiveDetailsState
 //  }
 
   _getRootPath() async {
-    Directory appDocDir = await getExternalStorageDirectory();
+    Directory appDocDir;
+
+    if(Platform.isIOS){
+      appDocDir = await getApplicationDocumentsDirectory();
+    } else {
+      appDocDir = await getExternalStorageDirectory();
+    }
     String appDocPath = appDocDir.path;
     print('Root path: $rootPath');
     setState(() {
@@ -362,8 +368,8 @@ class _DecompressedArchiveDetailsState
               ),
               contentPadding: const EdgeInsets.all(0.0),
             ),
-            content: ListView(
-              shrinkWrap: true,
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
               children: <Widget>[
                 ListTile(
                   title: Text(
@@ -381,8 +387,8 @@ class _DecompressedArchiveDetailsState
                   subtitle: file.size < 1000
                       ? Text('${file.size} Bytes')
                       : (file.size > 1000 && file.size < 1000000)
-                          ? Text('${(file.size / 1024).round()} KB')
-                          : Text('${(file.size / 1048576).round()} MB'),
+                      ? Text('${(file.size / 1024).round()} KB')
+                      : Text('${(file.size / 1048576).round()} MB'),
                   contentPadding: const EdgeInsets.all(0.0),
                 ),
                 ListTile(
