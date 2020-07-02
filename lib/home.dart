@@ -35,7 +35,6 @@ class _HomeState extends State<Home> {
             icon: Icon(
               Icons.info_outline,
               color: Colors.black,
-              size: 18.0,
             ),
             onPressed: () {
               _showInfoDialog(
@@ -78,7 +77,7 @@ class _HomeState extends State<Home> {
                     //_decodeArchive();
                     _chooseFile();
                   } else {
-                    print('Storage permissions are not granted');
+                    //print('Storage permissions are not granted');
                     _requestPermission();
                   }
                 } else if (Platform.isIOS) {
@@ -100,14 +99,14 @@ class _HomeState extends State<Home> {
   }
 
   _chooseFile() async {
-    final path = await FilePicker.getFilePath(type: FileType.ANY);
+    final path = await FilePicker.getFilePath(type: FileType.any);
 
     if (path != null) {
-      print(path);
+      //print(path);
 
       var split = path.split('.');
       var extension = split[split.length - 1];
-      print('Selected file extension : $extension');
+      //print('Selected file extension : $extension');
       if (extension == 'zip' ||
           extension == 'tar' ||
           extension == 'gz' ||
@@ -139,7 +138,7 @@ class _HomeState extends State<Home> {
     }
 
     String appDocPath = appDocDir.path;
-    print(appDocPath);
+    //print(appDocPath);
 
     if (mounted) {
       setState(() {
@@ -151,7 +150,7 @@ class _HomeState extends State<Home> {
   _getPermissionStatus() async {
     PermissionStatus permission = await PermissionHandler()
         .checkPermissionStatus(PermissionGroup.storage);
-    print(permission);
+    //print(permission);
     permissionStatus = permission;
   }
 
@@ -164,7 +163,7 @@ class _HomeState extends State<Home> {
 
     setState(() {
       permissionStatus = permissionRequestResult[permissions];
-      print(permissionStatus);
+      //print(permissionStatus);
     });
 
     await _getPermissionStatus();
